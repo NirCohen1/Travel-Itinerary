@@ -9,15 +9,25 @@
 <script>
 export default {
   name: 'MapComponent',
+  props: {
+    locations: {
+      type: Object,
+      required: true,
+    },
+  },
   data() {
     return {
       map: null,
       userLocation: null,
       markers: [],
-      hotels_locations: [], // This will hold multiple locations
-      restaurants_locations: [],
-      attraction_locations: [],
     }
+  },
+  watch: {
+    locations(newLocations) {
+      if (this.map) {
+        this.addMultipleMarkers(newLocations)
+      }
+    },
   },
   mounted() {
     this.loadMap()
@@ -73,36 +83,57 @@ export default {
             title: 'You are here',
           })
 
-          // Optional: You can add multiple locations as well
-          this.addMultipleMarkers()
+          // Add initial markers
+          // this.addMultipleMarkers(this.locations)
         },
         (error) => {
           alert('Error getting location: ' + error.message)
         },
       )
     },
-    async fetchHotelLocations() {},
-    async fetchRestauratsLocations() {},
-    async fetchAttractonsLocations() {},
 
     // Add multiple markers for different locations
-    async addMultipleMarkers() {
-      const locations = await this.fetchHotelLocations()
+    addMultipleMarkers(locations) {
+      this.clearMarkers() // Clear existing markers before adding new ones
 
-      locations.forEach((location) => {
+      // Add markers for hotels
+      locations.hotels.forEach((hotel) => {
         const marker = new google.maps.Marker({
-          position: location,
+          position: hotel,
           map: this.map,
-          title: 'Location', // change according to the response (hotel/restaurants/attraction)
-          icon: 'path/to/custom/icon.png', // Add custom icon path here
+          title: 'Hotel',
+          icon: 'src/assets/icons/hotel_icon.jpg',
+        })
+        this.markers.push(marker)
+      })
+
+      // Add markers for restaurants
+      locations.restaurants.forEach((restaurant) => {
+        const marker = new google.maps.Marker({
+          position: restaurant,
+          map: this.map,
+          title: 'Restaurant',
+          icon: 'src/assets/icons/restaurant_icon.png',
+        })
+        this.markers.push(marker)
+      })
+
+      // Add markers for attractions
+      locations.attractions.forEach((attraction) => {
+        const marker = new google.maps.Marker({
+          position: attraction,
+          map: this.map,
+          title: 'Attraction',
+          icon: 'src/assets/icons/attraction_icon.jpg',
         })
         this.markers.push(marker)
       })
     },
 
-    // Send location to another component
-    sendLocationToOtherComponent() {
-      this.$emit('location-sent', this.userLocation)
+    // Clear all markers from the map
+    clearMarkers() {
+      this.markers.forEach((marker) => marker.setMap(null))
+      this.markers = []
     },
   },
 }
@@ -112,6 +143,6 @@ export default {
 /* Styling for the map container */
 #map {
   height: 500px; /* Make sure the map has a sufficient height */
-  width: 50%; /* Ensure it takes up the full width */
+  width: 50%; /* Ensure it takes up the proper width */
 }
 </style>

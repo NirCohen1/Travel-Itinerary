@@ -33,12 +33,18 @@
         <label for="location">Location</label>
         <input
           type="text"
-          id="location"
-          v-model="location"
-          placeholder="Enter city or location"
+          id="selectedLocation"
+          v-model="selectedLocation"
+          :placeholder="useCurrentLocation ? 'Using current location' : 'Enter city or location'"
+          :disabled="useCurrentLocation"
+          :required="!useCurrentLocation"
           ref="locationInput"
-          required
         />
+        <div>
+          <input type="checkbox" id="useCurrentLocation" v-model="useCurrentLocation" />
+          <label for="useCurrentLocation">Use my current location</label>
+        </div>
+        <span v-if="locationError" class="error">{{ locationError }}</span>
       </div>
 
       <!-- Submit Button -->
@@ -48,7 +54,6 @@
 </template>
 
 <script>
-// Google Maps API Loader for autocomplete
 import { Loader } from '@googlemaps/js-api-loader'
 
 export default {
@@ -59,25 +64,56 @@ export default {
       location: '',
       autocomplete: null,
       googleMapsLoaded: false,
+      useCurrentLocation: false,
+      selectedLocation: '',
+      userLocation: {},
+      locationLatLng: null, // Stores the validated lat/lng
+      locationError: '', // Error message for location validation
     }
   },
   methods: {
     async submitForm() {
+      if (!this.useCurrentLocation && !this.locationLatLng) {
+        this.locationError = 'Please select a valid location from the autocomplete suggestions.'
+        return
+      }
+
+      this.locationError = '' // Clear any previous errors
+
+      const location =
+        this.useCurrentLocation && this.userLocation.lat
+          ? `${this.userLocation.lat},${this.userLocation.lng}`
+          : `${this.locationLatLng.lat},${this.locationLatLng.lng}`
+
       const formData = {
         maxBudget: this.maxBudget,
         guests: this.guests,
-        location: this.location,
+        location,
       }
 
       console.log('Form Data:', formData)
-      // const forwardResponse = await axios.post('http://localhost:3000/api/search-hotels', formData)
+
+      // Uncomment the following to send data to your backend
+      // const forwardResponse = await axios.post('http://localhost:3000/api/search-hotels', formData);
+
       // Emit to Preferences
       this.$emit('json-data', formData)
     },
-
+    getUserLocation() {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude
+          const lng = position.coords.longitude
+          this.userLocation = { lat, lng }
+        },
+        (error) => {
+          alert('Error getting location: ' + error.message)
+        },
+      )
+    },
     loadGoogleMapsAPI() {
       const loader = new Loader({
-        apiKey: import.meta.env.VITE_apiKey, // TODO make as variable
+        apiKey: import.meta.env.VITE_apiKey,
         version: 'weekly',
         libraries: ['places'],
       })
@@ -90,9 +126,7 @@ export default {
     initializeAutocomplete() {
       const input = this.$refs.locationInput
       const options = {
-        types: ['(cities)'], // You can specify types such as cities or establishments
-        // Remove or adjust the country restriction to allow global cities
-        // You can also restrict by a specific country like { country: 'GB' } for the UK
+        types: ['(cities)'], // Restrict to cities
       }
 
       this.autocomplete = new google.maps.places.Autocomplete(input, options)
@@ -100,15 +134,23 @@ export default {
     },
     handlePlaceChanged() {
       const place = this.autocomplete.getPlace()
-      if (place && place.name) {
-        this.location = place.name
+      if (place && place.geometry && place.geometry.location) {
+        this.locationLatLng = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng(),
+        }
+        this.selectedLocation = place.formatted_address
+        this.locationError = '' // Clear error if valid place selected
+      } else {
+        this.locationLatLng = null
+        this.locationError =
+          'Invalid location. Please select a valid place from the autocomplete suggestions.'
       }
     },
   },
   mounted() {
     this.loadGoogleMapsAPI()
-    console.log('here')
-    console.log(import.meta.env.VITE_apiKey)
+    this.getUserLocation()
   },
 }
 </script>
@@ -269,6 +311,8 @@ button:focus {
   .error-message {
     color: red;
     margin-top: 10px;
+    font-size: 0.9em;
+    margin-top: 0.5em;
   }
 }
 </style>

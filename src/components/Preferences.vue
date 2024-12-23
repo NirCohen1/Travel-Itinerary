@@ -6,7 +6,7 @@
         v-for="(image, index) in images"
         :key="index"
         @click="selectChoice(index)"
-        :class="{ selected: this.chosen == index }"
+        :class="{ selected: this.chosen === index }"
       >
         <!-- :class="{ selected: selectedChoices.includes(index) }" -->
 
@@ -19,7 +19,7 @@
       <button @click="submitChoices">Submit Choices</button>
     </div>
     <!-- <div :class="{ 'hide-div': !isHidden }"> -->
-    <DetailsForm @json-data="handleJsonData" />
+    <DetailsForm :json-data="jsonData" @data-received="handleReceivedData" />
     <!-- </div> -->
   </div>
 </template>
@@ -35,35 +35,103 @@ export default {
   data() {
     return {
       images: [
-        '/src/assets/french.jpg',
-        '/src/assets/greek.jpg',
-        '/src/assets/israel.jpg',
-        '/src/assets/italy.jpg',
-        '/src/assets/thai.webp',
-        '/src/assets/indian.avif',
+        '/src/assets/food_choice/french.jpg',
+        '/src/assets/food_choice/greek.jpg',
+        '/src/assets/food_choice/israel.jpg',
+        '/src/assets/food_choice/italy.jpg',
+        '/src/assets/food_choice/thai.webp',
+        '/src/assets/food_choice/indian.avif',
       ],
-      selectedChoices: [],
+      FoodType: {
+        French: 'french_restaurant',
+        Greek: 'greek_restaurant',
+        Israeli: 'israeli_restaurant',
+        Italian: 'italian_restaurant',
+        Thai: 'thai_restaurant',
+        Indian: 'indian_restaurant',
+        Japanese: 'japanese_restaurant',
+      },
       chosen: -1,
       HideFood: false,
-      select: null,
       jsonData: {},
+      cuisine: null,
+      userLocation: null,
+      receivedData: null,
     }
   },
   methods: {
+    handleReceivedData(data) {
+      console.log('Data received from DetailsForm:', data)
+      this.$emit('json-data', data) // Emit event with data
+    },
     selectChoice(index) {
       this.chosen = index
-      console.log(this.chosen)
+      console.log(index)
+      console.log(Object.values(this.FoodType))
+      this.cuisine = Object.values(this.FoodType)[index] || null
     },
-    submitChoices() {
-      if (this.chosen > 0) {
-        alert('Choices submitted: ' + this.chosen)
+    async submitChoices() {
+      if (this.chosen >= 0) {
+        alert('Choices submitted: ' + this.cuisine)
       } else {
         alert('Please choose at least one option.')
       }
     },
-    //TODO sent when finish
-    handleJsonData() {
-      this.$emit('json-data', this.jsonData) // Emit event with data
+    async fetchUserLocation() {
+      return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            this.userLocation = `${position.coords.latitude},${position.coords.longitude}`
+            resolve()
+          },
+          (error) => {
+            console.error('Error getting location:', error)
+            alert('Error getting location: ' + error.message)
+            reject()
+          },
+        )
+      })
+    },
+    async fetchFullRequest() {
+      if (!this.userLocation) {
+        console.error('User location not available.')
+        return
+      }
+
+      try {
+        // Define the URL for the API request
+        const full_request_api = `${state.server_domain}/api/full-request`
+
+        // Prepare the request body
+        const requestData = {
+          location: this.userLocation, // Use the user's current location
+          radius: 3000,
+          cuisine: this.cuisine, // Send the selected cuisine type
+        }
+
+        // Make the single API request
+        const response = await fetch(full_request_api, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        })
+
+        // Check if the response is okay
+        if (!response.ok) {
+          throw new Error('Request failed')
+        }
+
+        // Parse the JSON data from the response
+        const data = await response.json()
+        this.jsonData = data
+
+        // Handle the combined data
+        console.log('Data from full request:', data)
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      }
     },
   },
 }
