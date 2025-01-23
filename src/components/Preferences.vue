@@ -1,37 +1,41 @@
 <template>
-  <div id="app">
-    <div id="food-choice" :class="{ 'hide-div': this.HideFood }">
-      <div
-        class="choice-container"
-        v-for="(image, index) in images"
-        :key="index"
-        @click="selectChoice(index)"
-        :class="{ selected: this.chosen === index }"
-      >
-        <!-- :class="{ selected: selectedChoices.includes(index) }" -->
-
-        <div class="choice-box" :style="{ backgroundImage: 'url(' + image + ')' }"></div>
+  <div id="app" class="on-hover-image" :style="style_app">
+    <div id="food-choice" class="container">
+      <div class="grid-container">
+        <div
+          v-for="(image, index) in images"
+          :key="index"
+          class="choice-wrapper"
+          @click="selectChoice(index)"
+        >
+          <div
+            class="choice-box"
+            :class="{ selected: chosen === index }"
+            :style="{ backgroundImage: `url(${image})` }"
+            @mouseover="() => mouseOverFn(index)"
+          >
+            <div class="overlay">
+              <span class="cuisine-name">
+                {{ getCuisineName(image) }}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
-      <!-- <p v-if="selectedChoices.length === 0" class="error-message">
-        Please choose at least one option.
-      </p> -->
-      <p v-if="chosen === -1" class="error-message">Please choose at least one option.</p>
-      <button @click="submitChoices">Submit Choices</button>
+
+      <div class="submit-section">
+        <p v-if="chosen === -1" class="error-message">Please choose a cuisine</p>
+        <button @click="submitChoices" :disabled="chosen === -1" class="submit-btn">
+          Discover Restaurants
+        </button>
+      </div>
     </div>
-    <!-- <div :class="{ 'hide-div': !isHidden }"> -->
-    <DetailsForm :json-data="jsonData" @data-received="handleReceivedData" />
-    <!-- </div> -->
   </div>
 </template>
 
 <script>
-import DetailsForm from './DetailsForm.vue'
-
 export default {
   name: 'Preferences',
-  components: {
-    DetailsForm,
-  },
   data() {
     return {
       images: [
@@ -49,17 +53,39 @@ export default {
         Italian: 'italian_restaurant',
         Thai: 'thai_restaurant',
         Indian: 'indian_restaurant',
-        Japanese: 'japanese_restaurant',
       },
       chosen: -1,
-      HideFood: false,
-      jsonData: {},
-      cuisine: null,
-      userLocation: null,
-      receivedData: null,
+      style_app: null,
+      spiral_i: 0,
     }
   },
   methods: {
+    getCuisineName(image) {
+      const fileName = image.split('/').pop().split('.')[0]
+      return fileName.charAt(0).toUpperCase() + fileName.slice(1)
+    },
+    selectChoice(index) {
+      this.chosen = index
+    },
+    mouseOverFn(index) {
+      this.city_list = []
+      city = this.FoodType[index]
+      for (let i = 0; i < 4; i++) {
+        this.city_list.push('/src/assets/city_photos/' + city + i + '.jpg')
+      }
+      clearInterval(this.interval_carousel)
+      this.interval_carousel = setInterval(this.carousel, 2000)
+    },
+    carousel() {
+      this.spiral_i % 4 ? (this.spiral_i = 0) : this.spiral_i++
+      this.style_app = {
+        backgroundImage: `url(${this.city_list(this.spiral_i)}))`,
+        transition: 'background-image 1s ease-in-out',
+      }
+    },
+    beforeDestroy() {
+      clearInterval(this.interval_carousel)
+    },
     handleReceivedData(data) {
       console.log('Data received from DetailsForm:', data)
       this.$emit('json-data', data) // Emit event with data
@@ -72,7 +98,7 @@ export default {
     },
     async submitChoices() {
       if (this.chosen >= 0) {
-        alert('Choices submitted: ' + this.cuisine)
+        alert('Choices submitted: ' + Object.values(this.FoodType)[this.chosen])
       } else {
         alert('Please choose at least one option.')
       }
@@ -138,40 +164,107 @@ export default {
 </script>
 
 <style scoped>
-.choice-container {
-  display: inline-block;
-  margin: 10px;
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.9);
 }
 
-.choice-box {
-  width: 200px;
-  height: 200px;
-  background-size: cover;
-  background-position: center;
-  border: 2px solid #ccc;
-  cursor: pointer;
-  transition: transform 0.3s ease;
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  max-width: 1200px;
+  margin-bottom: 2rem;
 }
 
-.choice-box:hover {
+.choice-wrapper {
+  perspective: 1000px;
+  transition: transform 0.5s;
+}
+
+.choice-wrapper:hover {
   transform: scale(1.05);
 }
 
-.selected {
-  border-color: rgb(198, 151, 126);
-  box-shadow: 0 0 30px rgba(164, 19, 57, 0.5);
+.choice-box {
+  width: 300px;
+  height: 300px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.choice-box .overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  padding: 1rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.choice-box:hover .overlay {
+  opacity: 1;
+}
+
+.cuisine-name {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px black;
+}
+
+.choice-box.selected {
+  border: 4px solid #ff6b6b;
+  box-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+}
+
+.submit-section {
+  text-align: center;
+}
+
+.submit-btn {
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.submit-btn:hover {
+  background-color: #ff4757;
+  transform: translateY(-3px);
+}
+
+.submit-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 
 .error-message {
-  color: red;
+  color: #ff4757;
+  margin-bottom: 1rem;
   font-weight: bold;
-}
-
-button {
-  margin-top: 20px;
-}
-
-.hide-div {
-  display: none;
 }
 </style>
