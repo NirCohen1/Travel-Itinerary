@@ -1,5 +1,5 @@
 <template>
-  <div id="app" :class="HideFood ? 'hide-div' : 'on-hover-image'" :style="style_app">
+  <div :class="HideFood ? 'hide-div' : 'on-hover-image'" :style="style_app">
     <div id="food-choice" class="container">
       <div class="grid-container">
         <div
@@ -220,6 +220,9 @@ export default {
 .choice-wrapper {
   perspective: 1000px;
   transition: transform 0.5s;
+  /* border: rgb(90, 78, 78);
+  border-style: solid; */
+  box-shadow: 0 10px 5px rgba(0, 0, 0, 0.2);
 }
 
 .choice-wrapper:hover {

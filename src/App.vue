@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div id="app">
     <Preferences @json-data="handleJsonData" />
     <div v-if="preferences_done">
       <MapComponent :locations="locations" />
