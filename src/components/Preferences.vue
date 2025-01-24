@@ -1,5 +1,5 @@
 <template>
-  <div id="app" class="on-hover-image" :style="style_app">
+  <div id="app" :class="HideFood ? 'hide-div' : 'on-hover-image'" :style="style_app">
     <div id="food-choice" class="container">
       <div class="grid-container">
         <div
@@ -31,11 +31,20 @@
       </div>
     </div>
   </div>
+  <div id="form" v-if="HideFood">
+    <DetailsForm @data-received="handleReceivedData" />
+  </div>
 </template>
 
 <script>
+import DetailsForm from './DetailsForm.vue'
+
 export default {
   name: 'Preferences',
+  emits: ['json-data'],
+  components: {
+    DetailsForm,
+  },
   data() {
     return {
       images: [
@@ -55,8 +64,16 @@ export default {
         Indian: 'indian_restaurant',
       },
       chosen: -1,
-      style_app: null,
       spiral_i: 0,
+      style_app: null,
+      userLocation: null,
+      receivedData: null,
+      cuisine: null,
+      interval_carousel: null,
+      HideFood: false,
+      submited_1: false,
+      city_list: [],
+      jsonData: {},
     }
   },
   methods: {
@@ -68,23 +85,30 @@ export default {
       this.chosen = index
     },
     mouseOverFn(index) {
+      let city = Object.keys(this.FoodType)[index]
       this.city_list = []
-      city = this.FoodType[index]
-      for (let i = 0; i < 4; i++) {
-        this.city_list.push('/src/assets/city_photos/' + city + i + '.jpg')
+      for (let i = 1; i < 5; i++) {
+        this.city_list.push('/src/assets/city_photos/' + city + '/' + i + '.jpg')
+      }
+      // immediate first image
+      this.style_app = {
+        backgroundImage: `url(${this.city_list[this.spiral_i]})`,
+        transition: 'background-image 1s ease',
       }
       clearInterval(this.interval_carousel)
-      this.interval_carousel = setInterval(this.carousel, 2000)
+      this.interval_carousel = setInterval(this.carousel, 3000)
     },
     carousel() {
-      this.spiral_i % 4 ? (this.spiral_i = 0) : this.spiral_i++
+      this.spiral_i = (this.spiral_i + 1) % this.city_list.length
+      console.log(this.city_list[this.spiral_i])
       this.style_app = {
-        backgroundImage: `url(${this.city_list(this.spiral_i)}))`,
-        transition: 'background-image 1s ease-in-out',
+        backgroundImage: `url(${this.city_list[this.spiral_i]})`,
+        transition: 'background-image 1s ease-in',
       }
     },
     beforeDestroy() {
       clearInterval(this.interval_carousel)
+      this.interval_carousel = null
     },
     handleReceivedData(data) {
       console.log('Data received from DetailsForm:', data)
@@ -99,6 +123,9 @@ export default {
     async submitChoices() {
       if (this.chosen >= 0) {
         alert('Choices submitted: ' + Object.values(this.FoodType)[this.chosen])
+        this.HideFood = true
+        clearInterval(this.interval_carousel)
+        this.interval_carousel = null
       } else {
         alert('Please choose at least one option.')
       }
@@ -164,6 +191,14 @@ export default {
 </script>
 
 <style scoped>
+.on-hover-image {
+  background-position: center; /* Center the image */
+  background-repeat: no-repeat;
+  background-size: cover;
+  image-rendering: auto;
+  transition: background-image 1s ease;
+}
+
 .container {
   display: flex;
   flex-direction: column;
@@ -171,7 +206,7 @@ export default {
   align-items: center;
   min-height: 100vh;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.9);
+  /* background: rgba(255, 255, 255, 0.9); */
 }
 
 .grid-container {
@@ -263,8 +298,11 @@ export default {
 }
 
 .error-message {
-  color: #ff4757;
+  color: #394dce;
   margin-bottom: 1rem;
   font-weight: bold;
+}
+.hide-div {
+  display: none;
 }
 </style>

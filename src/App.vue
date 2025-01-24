@@ -1,7 +1,9 @@
 <template>
   <div>
     <Preferences @json-data="handleJsonData" />
-    <MapComponent :locations="locations" />
+    <div v-if="preferences_done">
+      <MapComponent :locations="locations" />
+    </div>
   </div>
 </template>
 
@@ -16,10 +18,11 @@ export default {
     Preferences,
   },
   data() {
-    return { locations: [] }
+    return { locations: [], preferences_done: false }
   }, // Shared state for locations }; },
   methods: {
     handleJsonData(data) {
+      this.preferences_done = true
       this.locations = data
     },
   },

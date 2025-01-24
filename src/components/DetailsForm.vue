@@ -1,74 +1,71 @@
 <template>
   <div class="form-container">
-    <h2>Budget and Event Form</h2>
-    <form @submit.prevent="submitForm">
-      <!-- Max Budget -->
-      <div class="form-group">
-        <label for="maxBudget">Max Budget</label>
-        <input
-          type="number"
-          id="maxBudget"
-          v-model="maxBudget"
-          placeholder="Enter maximum budget"
-          required
-          min="0"
-        />
-      </div>
-
-      <!-- Number of Guests -->
-      <div class="form-group">
-        <label for="guests">Number of Guests</label>
-        <input
-          type="number"
-          id="guests"
-          v-model="guests"
-          placeholder="Enter number of guests"
-          required
-          min="1"
-        />
-      </div>
-
-      <!-- Location (with autocomplete) -->
-      <div class="form-group">
-        <label for="location">Location</label>
-        <input
-          type="text"
-          id="selectedLocation"
-          v-model="selectedLocation"
-          :placeholder="useCurrentLocation ? 'Using current location' : 'Enter city or location'"
-          :disabled="useCurrentLocation"
-          :required="!useCurrentLocation"
-          ref="locationInput"
-        />
-        <div>
-          <input type="checkbox" id="useCurrentLocation" v-model="useCurrentLocation" />
-          <label for="useCurrentLocation">Use my current location</label>
+    <div class="form-wrapper">
+      <h2 class="form-title">Event Planning Wizard</h2>
+      <form @submit.prevent="submitForm">
+        <div class="form-group">
+          <label for="maxBudget">Max Budget</label>
+          <input
+            type="number"
+            id="maxBudget"
+            v-model="maxBudget"
+            placeholder="Enter maximum budget"
+            required
+            min="0"
+          />
         </div>
-        <span v-if="locationError" class="error">{{ locationError }}</span>
-      </div>
 
-      <!-- Submit Button -->
-      <button type="submit">Submit</button>
-    </form>
+        <div class="form-group">
+          <label for="guests">Number of Guests</label>
+          <input
+            type="number"
+            id="guests"
+            v-model="guests"
+            placeholder="Enter number of guests"
+            required
+            min="1"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="selectedLocation">Location</label>
+          <input
+            type="text"
+            id="selectedLocation"
+            v-model="selectedLocation"
+            :placeholder="useCurrentLocation ? 'Using current location' : 'Enter city or location'"
+            :disabled="useCurrentLocation"
+            :required="!useCurrentLocation"
+            ref="locationInput"
+          />
+          <div class="location-checkbox">
+            <input type="checkbox" id="useCurrentLocation" v-model="useCurrentLocation" />
+            <label for="useCurrentLocation">Use my current location</label>
+          </div>
+          <span v-if="locationError" class="error-message">{{ locationError }}</span>
+        </div>
+
+        <button type="submit">Submit Event Details</button>
+      </form>
+    </div>
   </div>
 </template>
 
 <script>
-import { Loader } from '@googlemaps/js-api-loader'
-
 export default {
+  emits: ['json-data'],
   data() {
     return {
       maxBudget: '',
       guests: '',
       location: '',
       autocomplete: null,
-      googleMapsLoaded: false,
       useCurrentLocation: false,
       selectedLocation: '',
       userLocation: {},
-      locationLatLng: null, // Stores the validated lat/lng
-      locationError: '', // Error message for location validation
+      locationLatLng: null,
+      locationError: '',
+      googleMapsScript: null,
     }
   },
   methods: {
@@ -78,7 +75,7 @@ export default {
         return
       }
 
-      this.locationError = '' // Clear any previous errors
+      this.locationError = ''
 
       const location =
         this.useCurrentLocation && this.userLocation.lat
@@ -92,41 +89,42 @@ export default {
       }
 
       console.log('Form Data:', formData)
-
-      // Uncomment the following to send data to your backend
-      // const forwardResponse = await axios.post('http://localhost:3000/api/search-hotels', formData);
-
-      // Emit to Preferences
       this.$emit('json-data', formData)
     },
     getUserLocation() {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude
-          const lng = position.coords.longitude
-          this.userLocation = { lat, lng }
-        },
-        (error) => {
-          alert('Error getting location: ' + error.message)
-        },
-      )
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude
+            const lng = position.coords.longitude
+            this.userLocation = { lat, lng }
+          },
+          (error) => {
+            console.error('Error getting location:', error.message)
+          },
+        )
+      }
     },
-    loadGoogleMapsAPI() {
-      const loader = new Loader({
-        apiKey: import.meta.env.VITE_apiKey,
-        version: 'weekly',
-        libraries: ['places'],
-      })
-
-      loader.load().then(() => {
-        this.googleMapsLoaded = true
+    loadGoogleMapsScript() {
+      if (window.google && window.google.maps) {
         this.initializeAutocomplete()
-      })
+        return
+      }
+
+      this.googleMapsScript = document.createElement('script')
+      this.googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_apiKey}&libraries=places`
+      this.googleMapsScript.async = true
+
+      this.googleMapsScript.onload = () => {
+        this.initializeAutocomplete()
+      }
+
+      document.head.appendChild(this.googleMapsScript)
     },
     initializeAutocomplete() {
       const input = this.$refs.locationInput
       const options = {
-        types: ['(cities)'], // Restrict to cities
+        types: ['(cities)'],
       }
 
       this.autocomplete = new google.maps.places.Autocomplete(input, options)
@@ -140,7 +138,7 @@ export default {
           lng: place.geometry.location.lng(),
         }
         this.selectedLocation = place.formatted_address
-        this.locationError = '' // Clear error if valid place selected
+        this.locationError = ''
       } else {
         this.locationLatLng = null
         this.locationError =
@@ -149,170 +147,98 @@ export default {
     },
   },
   mounted() {
-    this.loadGoogleMapsAPI()
     this.getUserLocation()
+    this.loadGoogleMapsScript()
+  },
+  beforeUnmount() {
+    if (this.googleMapsScript) {
+      document.head.removeChild(this.googleMapsScript)
+    }
   },
 }
 </script>
 
 <style scoped>
 .form-container {
-  max-width: 400px;
-  margin: 40px auto;
+  background: linear-gradient(135deg, #f0f8ff, #e6f2ff);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 20px;
-  border-radius: 12px;
-  background-color: #ffffff;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  font-family: 'Arial', sans-serif;
-  color: #333;
-  grid-template-columns: auto auto;
 }
 
-h2 {
-  grid-column: span 2;
+.form-wrapper {
+  background-color: white;
+  width: 100%;
+  max-width: 400px;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.form-wrapper:hover {
+  transform: scale(1.02);
+}
+
+.form-title {
   text-align: center;
-  font-size: 22px;
   color: #2c3e50;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  font-size: 24px;
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  margin-bottom: 15px;
 }
 
 label {
-  padding: 5px;
-  font-size: 14px;
-  font-weight: 600;
+  display: block;
+  margin-bottom: 5px;
   color: #34495e;
 }
 
 input[type='number'],
-input[type='date'],
 input[type='text'] {
   width: 100%;
-  padding: 12px;
-  margin-top: 6px;
+  padding: 10px;
   border: 1px solid #bdc3c7;
-  border-radius: 8px;
-  font-size: 16px;
-  color: #34495e;
+  border-radius: 5px;
   background-color: #ecf0f1;
-  box-sizing: border-box;
   transition: all 0.3s ease;
 }
 
 input[type='number']:focus,
-input[type='date']:focus,
 input[type='text']:focus {
   border-color: #3498db;
   outline: none;
-  background-color: #ffffff;
+  background-color: white;
 }
 
-input::placeholder {
-  color: #bdc3c7;
+.location-checkbox {
+  margin-top: 10px;
 }
 
-/* Min Budget & Max Budget in one row */
-.budget-group {
-  grid-column: span 2;
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
+.error-message {
+  color: red;
+  font-size: 0.8em;
+  margin-top: 5px;
 }
 
-.budget-group input {
-  flex: 1;
-}
-
-.budget-group input:first-child {
-  margin-right: 10px;
-}
-
-/* Start Date & End Date in one row */
-.date-group {
-  grid-column: span 2;
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.date-group input {
-  flex: 1;
-}
-
-.date-group input:first-child {
-  margin-right: 10px;
-}
-
-/* Smaller number of guests input */
-.number-guests input {
-  width: 50%;
-}
-
-/* Submit button */
 button {
-  grid-column: span 2;
   width: 100%;
   padding: 12px;
   background-color: #3498db;
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 5px;
   cursor: pointer;
-  font-weight: 600;
   transition: background-color 0.3s ease;
-  margin-top: 25px;
+  margin-top: 15px;
 }
 
 button:hover {
   background-color: #2980b9;
-}
-
-button:focus {
-  outline: none;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .form-container {
-    grid-template-columns: 1fr;
-    padding: 15px;
-  }
-
-  h2 {
-    font-size: 20px;
-  }
-
-  input[type='number'],
-  input[type='date'],
-  input[type='text'] {
-    font-size: 14px;
-    padding: 10px;
-  }
-
-  button {
-    font-size: 14px;
-    padding: 10px;
-  }
-
-  .budget-group,
-  .date-group {
-    grid-column: span 1;
-  }
-
-  .number-guests input {
-    width: 100%;
-  }
-  .error-message {
-    color: red;
-    margin-top: 10px;
-    font-size: 0.9em;
-    margin-top: 0.5em;
-  }
 }
 </style>

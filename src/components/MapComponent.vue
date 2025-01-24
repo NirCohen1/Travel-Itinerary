@@ -1,7 +1,7 @@
 <template>
   <div>
-    <button @click="sendLocationToOtherComponent">Send Location</button>
     <div id="map" ref="map"></div>
+    <button @click="sendLocationToOtherComponent">Send Location</button>
     <!-- Make sure map div has a proper size -->
   </div>
 </template>
