@@ -3,6 +3,16 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
-  external: ['vue'],
-  base: '/Travel-Itinerary/', // Correct base path for GitHub Pages
+  base: '/Travel-Itinerary/', // Ensure this matches your repo name
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor'
+          }
+        },
+      },
+    },
+  },
 })
