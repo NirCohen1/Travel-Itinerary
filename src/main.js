@@ -1,4 +1,4 @@
-// import { createApp } from 'vue';
+import { createApp } from 'vue'
 import App from './App.vue'
 
-Vue.createApp(App).mount('#app')
+createApp(App).mount('#app') // Make sure it targets the correct div ID

@@ -48,12 +48,12 @@ export default {
   data() {
     return {
       images: [
-        '/src/assets/food_choice/french.jpg',
-        '/src/assets/food_choice/greek.jpg',
-        '/src/assets/food_choice/israel.jpg',
-        '/src/assets/food_choice/italy.jpg',
-        '/src/assets/food_choice/thai.webp',
-        '/src/assets/food_choice/indian.avif',
+        './src/assets/food_choice/french.jpg',
+        './src/assets/food_choice/greek.jpg',
+        './src/assets/food_choice/israel.jpg',
+        './src/assets/food_choice/italy.jpg',
+        './src/assets/food_choice/thai.webp',
+        './src/assets/food_choice/indian.avif',
       ],
       FoodType: {
         French: 'french_restaurant',
@@ -88,7 +88,7 @@ export default {
       let city = Object.keys(this.FoodType)[index]
       this.city_list = []
       for (let i = 1; i < 5; i++) {
-        this.city_list.push('/src/assets/city_photos/' + city + '/' + i + '.jpg')
+        this.city_list.push('./src/assets/city_photos/' + city + '/' + i + '.jpg')
       }
       // immediate first image
       this.style_app = {
