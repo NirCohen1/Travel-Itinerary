@@ -3,10 +3,10 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
-  base: '/Travel-Itinerary/', // Ensure this matches your repo name
+  base: '/Travel-Itinerary/',
   resolve: {
     alias: {
-      'vue': 'vue/dist/vue.esm-bundler.js',
+      vue: 'vue/dist/vue.esm-bundler.js',
     },
   },
   build: {
