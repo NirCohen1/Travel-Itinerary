@@ -6,7 +6,7 @@ export default defineConfig({
   base: '/Travel-Itinerary/', // Ensure this matches your repo name
   resolve: {
     alias: {
-      vue: 'vue/dist/vue.esm-bundler.js',
+      'vue': 'vue/dist/vue.esm-bundler.js',
     },
   },
   build: {
