@@ -8,8 +8,8 @@
 </template>
 
 <script>
-import MapComponent from './components/MapComponent.vue'
-import Preferences from './components/Preferences.vue'
+import MapComponent from '@/components/MapComponent.vue'
+import Preferences from '@/components/Preferences.vue'
 
 export default {
   name: 'App',
